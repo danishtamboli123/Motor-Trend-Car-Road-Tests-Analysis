@@ -1,0 +1,114 @@
+---
+title: "Motor Trend Analysis"
+author: "Danish Tamboli"
+date: "8/22/2020"
+output: pdf_document
+---
+## Summary
+In this Analysis we are going to look at the mtcars dataset (Motor Trend Car Road Tests), The data was extracted from the 1974 Motor Trend US magazine, and comprises fuel consumption and 10 aspects of automobile design and performance for 32 automobiles (1973–74 models).
+
+The Questions that are of interest are:
+
+ * Is an automatic or manual transmission better for MPG?
+ * What is the MPG difference between automatic and manual transmissions? 
+
+### Loading the Dataset:
+```{r dataset load}
+data <- mtcars
+```
+
+### Quick glance at Dataset:
+```{r data summary}
+head(data)
+str(data)
+```
+
+Upon looking at the structure of the Dataset, We notice that there are certain Variables that would be more useful if converted into Factors, They are:
+
+ * Number of Cylinders (cyl)
+ * Engine V-shaped (0) vs straight (1) (vs)
+ * Transmission Type Automatic (0) vs Manual (1) (am)
+ * Number of forward gears (gear)
+ * Number of Carburetors (carb)
+ 
+**Refer to Fig-2 in Appendix.**
+
+### Conversion into Factors:
+```{r data factor conversion}
+data$cyl <- as.factor(data$cyl)
+data$vs <- as.factor(data$vs)
+data$am <- factor(data$am)
+data$gear <- as.factor(data$gear)
+data$carb <- as.factor(data$carb)
+```
+
+
+### Initals Inference:
+```{r initial inference}
+temp_dat <- data[,c("mpg","am")]
+temp_dat$am <- factor(temp_dat$am,labels = c("Automatic","Manual"))
+head(temp_dat)
+knitr::kable(aggregate(mpg~am,data = temp_dat,mean),
+             col.names = c("Transmission Type","Average Miles per Gallon (MPG)"))
+difference <- aggregate(mpg~am,data = temp_dat,mean)[2,2] - aggregate(mpg~am,data = temp_dat,mean)[1,2]
+```
+
+The Difference in MPG between Manual and Automatic Transmission is **`r difference`**, This shows that Manual Cars perform more efficiently than Automatic Cars. This will be our Hypothesis against the NUll Hypothesis that there is no difference in MPG between the two Transmission types.
+
+**Refer to Fig-1 in Appendix.**
+
+```{r t-test}
+dat_aut <- data[data$am=="0",]
+dat_ml <- data[data$am=="1",]
+print(test <- t.test(dat_aut$mpg,dat_ml$mpg))
+```
+The P-value is **`r test$p.value`**, Indicating that the two lie in difference Distributions and hence there is a significant difference in MPG between the two Transmission Types.
+
+## Regression Models
+```{r glm fit1}
+fit1 <- glm(mpg~am-1,family = "gaussian",data = data)
+summary(fit1)
+par(mfrow=c(2,2))
+plot(fit1)
+```
+The First Regression Model shows a similar story, with the difference in MPG between Manual and Transmission being **`r difference`**.
+
+```{r Analysis of Variance}
+summary(aov(mpg~.,data = data))
+```
+Analysis of Variance shows that we could have a better explained Model if we include other factors such as:
+ * Number of Cylinder (cyl)
+ * Displacement (disp)
+ * Weight (1000lbs) (wt)
+ 
+```{r glm fit2}
+fit2 <- glm(mpg~am+cyl+disp+wt-1, family="gaussian",data=data)
+summary(fit2)
+par(mfrow=c(2,2))
+plot(fit2)
+```
+The Second model is indeed a better explained model.
+With this we can conclude that Yes, There is indeed a distinction in MPG with respect to Transmission type, but also with respect to:
+
+ * Number of Cylinders (cyl)
+ * Displacement of the Engine (disp)
+ * The Total Weight of the Vehicle (wt)
+
+## Appendix
+```{r relation plots,fig.height=3}
+library(ggplot2)
+ggplot(data = temp_dat) + geom_boxplot(aes(am,mpg,fill=am)) + labs(x="Transmission Type",y = "Miles Per Gallon (MPG)", title = "Relation Between Transmission Type and Miles Per Gallon (MPG)-Fig 1")
+```
+
+```{r pairs plot,fig.height=5}
+pairs(mpg~.,data = data,main="Scatterplot Matrix -Fig 2")
+```
+
+
+
+
+
+
+
+
+
